@@ -39,7 +39,7 @@ class StochasticGradientDescent:
             sz, activations = feedforward(data)
 
             if l == len(self.network.layers) - 1:
-                return 2 * activations[-1] - data.label
+                return 2 * (activations[-1] - data.label)
 
             w = self.network.layers[l+1].w
 

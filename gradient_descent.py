@@ -1,7 +1,7 @@
 import numpy as np
 import random
+from cost import CostFunction, Quadratic
 from data import LabeledData
-from functools import cache
 from tqdm import tqdm
 
 from evaluate import Evaluator
@@ -12,77 +12,47 @@ from network import Network
 def chunks(lst, n):
     """Yield successive n-sized chunks from lst."""
     for i in range(0, len(lst), n):
-        yield lst[i:i + n]
+        yield lst[i : i + n]
 
 
 class StochasticGradientDescent:
-    def __init__(self, network: Network):
+    def __init__(self, network: Network, cost: CostFunction):
         self.network = network
+        self.cost = cost(network=network, feedforward=self.feedforward)
 
     def feedforward(self, data: LabeledData) -> tuple[list[np.array], list[np.array]]:
-        sz = [None] # need a dummy layer to represent input
+        sz = [None]  # need a dummy layer to represent input
         activations = [data.value]
         for layer in self.network.layers[1:]:
             z = layer.z(activations[-1])
             sz.append(layer.f_prime(z))
             activations.append(layer.f(z))
-        
+
         return sz, activations
-    
-    def _partials(self) -> tuple[callable, callable]:
-        @cache
-        def feedforward(data: LabeledData):
-            return self.feedforward(data)
-        
-        @cache
-        def C_a(data: LabeledData, l: int) -> np.array:
-            sz, activations = feedforward(data)
 
-            if l == len(self.network.layers) - 1:
-                return 2 * (activations[-1] - data.label)
-
-            w = self.network.layers[l+1].w
-
-            arr2 = sz[l+1]
-            arr3 = C_a(data, l + 1)
-
-            return w.T @ (arr2 * arr3)
-
-        @cache
-        def C_w(data: LabeledData, l: int) -> np.array:
-            sz, activations = feedforward(data)
-
-            k_piece = activations[l-1]
-            j_piece = sz[l] * C_a(data, l)
-            
-            return np.outer(j_piece, k_piece)
-        
-        @cache
-        def C_b(data: LabeledData, l: int) -> np.array:
-            sz, activations = feedforward(data)
-            return sz[l] * C_a(data, l)
-
-        return C_w, C_b
+    @staticmethod
+    def _matrixify(batch: list[LabeledData]) -> LabeledData:
+        data_matrix = np.column_stack(
+            [data.value.reshape(data.value.shape[0]) for data in batch]
+        )
+        label_matrix = np.column_stack(
+            [data.label.reshape(data.label.shape[0]) for data in batch]
+        )
+        return LabeledData(value=data_matrix, label=label_matrix)
 
     def _update(self, batch: list[LabeledData], learning_rate: float) -> None:
-        layers = self.network.layers
-        batched_delta_w = [np.zeros(shape=layer.w.shape) for layer in layers]
-        batched_delta_b = [np.zeros(shape=layer.b.shape) for layer in layers]
+        """All examples in the batch are done simultaneously"""
+        data = self._matrixify(batch)
+        step_size = -learning_rate / len(batch)
 
         # C_w is partial derivative of cost(data) w.r.t. w_jkl
         # C_b is partial derivative of cost(data) w.r.t. b_jl
-        C_w, C_b = self._partials()
-        
+        C_w, C_b = self.cost.partials()
+
         # Skip the input layer
-        for l in range(1, len(layers)):
-            step_size = learning_rate / len(batch)
-            batched_delta_w[l] -= step_size * sum(C_w(data, l) for data in batch)
-            batched_delta_b[l] -= step_size * sum(C_b(data, l) for data in batch)
-        
-        # Update network
-        for l, layer in enumerate(layers):
-            layer.w += batched_delta_w[l]
-            layer.b += batched_delta_b[l]
+        for l, layer in enumerate(self.network.layers[1:], start=1):
+            layer.w += step_size * C_w(data, l)
+            layer.b += step_size * np.sum(C_b(data, l), axis=1).reshape(layer.b.shape)
 
     def train(
         self,
@@ -105,23 +75,27 @@ class StochasticGradientDescent:
                     # exit()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from sigmoid import SigmoidLayer
     from relu import ReluLayer
+
     data = MNISTLoader.load()
-    n = Network(sizes=[784, 10, 10], layer_classes=[SigmoidLayer, SigmoidLayer])
-    sgd = StochasticGradientDescent(n)
+    n = Network(
+        sizes=[784, 10, 10],
+        layer_classes=[SigmoidLayer, SigmoidLayer, SigmoidLayer],
+    )
+    sgd = StochasticGradientDescent(n, cost=Quadratic)
 
     evalator = Evaluator(n)
     accuracy = evalator.evaluate(data.test)
-    print('pre-training accuracy', accuracy)
+    print("pre-training accuracy", accuracy)
 
     sgd.train(
         training_data=data.training,
         epochs=3,
         batch_size=100,
-        learning_rate=3.,
+        learning_rate=10.0,
     )
 
     accuracy = evalator.evaluate(data.test)
-    print('post-training accuracy', accuracy)
+    print("post-training accuracy", accuracy)

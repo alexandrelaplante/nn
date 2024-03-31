@@ -1,7 +1,7 @@
 import numpy as np
 from data import LabeledData
 from functools import cache
-from abc import ABC
+from abc import ABC, abstractmethod
 
 
 class CostFunction(ABC):
@@ -9,6 +9,7 @@ class CostFunction(ABC):
         self.network = network
         self.feedforward = feedforward
 
+    @abstractmethod
     def partials(self) -> tuple[callable, callable]: ...
 
 

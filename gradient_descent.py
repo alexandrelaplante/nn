@@ -4,9 +4,8 @@ from cost import CostFunction
 from data import LabeledData
 from tqdm import tqdm
 
-from evaluate import Evaluator
-from mnist import MNISTLoader
 from network import Network
+from stopping import StoppingCondition
 
 
 def chunks(lst, n):
@@ -57,45 +56,26 @@ class StochasticGradientDescent:
     def train(
         self,
         training_data: list[LabeledData],
-        epochs: int,
         batch_size: int,
         learning_rate: float,
+        stopping: StoppingCondition,
     ):
-        total = epochs * len(training_data) / batch_size
-        with tqdm(total=total) as t:
-            for _ in range(epochs):
-                random.shuffle(training_data)
+        estimate = stopping.estimate(0)
+        total = None
+        if estimate:
+            total = estimate * len(training_data) / batch_size
+        epoch_num = 1
+        postfix = {"epochs": epoch_num, "accuracy": "0%"}
+        with tqdm(total=total, unit=" samples", postfix=postfix) as t:
+            while not stopping.should_stop(epoch_num):
+                postfix = {"epochs": epoch_num}
+                accuracy = stopping.accuracy(epoch_num)
+                epoch_num += 1
+                if accuracy is not None:
+                    postfix["accuracy"] = f"{100*stopping.accuracy(epoch_num)}%"
+                t.set_postfix(postfix)
 
-                # import cProfile
-                # with cProfile.Profile() as pr:
+                random.shuffle(training_data)
                 for batch in chunks(training_data, batch_size):
                     self._update(batch, learning_rate)
                     t.update()
-                    # pr.print_stats('cumtime')
-                    # exit()
-
-
-if __name__ == "__main__":
-    from layers import SigmoidLayer, ReluLayer, LinearLayer, SoftmaxLayer
-    from cost import Quadratic, CrossEntropy, LogLikelihood
-
-    data = MNISTLoader.load()
-    n = Network(
-        sizes=[784, 10, 10],
-        layer_classes=[SigmoidLayer, SigmoidLayer],
-    )
-    sgd = StochasticGradientDescent(n, cost=Quadratic)
-
-    evalator = Evaluator(n)
-    accuracy = evalator.evaluate(data.test)
-    print("pre-training accuracy", accuracy)
-
-    sgd.train(
-        training_data=data.training,
-        epochs=3,
-        batch_size=10,
-        learning_rate=3.0,
-    )
-
-    accuracy = evalator.evaluate(data.test)
-    print("post-training accuracy", accuracy)

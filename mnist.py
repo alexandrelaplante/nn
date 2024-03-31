@@ -1,14 +1,14 @@
+import np
 from data import DataSet, LabeledData
 import nielsen.mnist_loader as mnist_loader
+
 
 class MNISTLoader:
     @staticmethod
     def convert(l) -> list[LabeledData]:
         data = []
         for value, label in l:
-            data.append(
-                LabeledData(value=value, label=label)
-            )
+            data.append(LabeledData(value=np.array(value), label=np.array(label)))
         return data
 
     @classmethod
@@ -21,7 +21,8 @@ class MNISTLoader:
             test=cls.convert(test),
         )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     data = MNISTLoader.load()
 
     print(data.training[0].label)

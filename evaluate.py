@@ -1,4 +1,4 @@
-import numpy as np
+import np
 from data import LabeledData
 from network import Network
 
@@ -6,7 +6,7 @@ from network import Network
 class Evaluator:
     def __init__(self, network: Network) -> None:
         self.network = network
-    
+
     @staticmethod
     def indexOfMax(v: np.array) -> int:
         return max(enumerate(v), key=lambda x: x[1])[0]

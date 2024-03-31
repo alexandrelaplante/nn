@@ -1,4 +1,4 @@
-import numpy as np
+import np
 from data import LabeledData
 from functools import cache
 from abc import ABC, abstractmethod
@@ -77,7 +77,7 @@ class CrossEntropy(CostFunction):
             arr2 = sz[l + 1]
             arr3 = C_a(data, l + 1)
 
-            return w.T @ (arr2 * arr3)
+            return w.T @ (1 * arr3)
 
         @cache
         def delta(data: LabeledData, l: int) -> np.ndarray:

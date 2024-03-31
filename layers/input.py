@@ -1,12 +1,11 @@
 from layers.base import Layer
-import np
 
 
-class Relu(Layer):
+class Input(Layer):
     @staticmethod
     def f(x):
-        return x * (x > 0)
+        raise NotImplementedError
 
     @staticmethod
     def f_prime(x):
-        return 1.0 * (x > 0)
+        raise NotImplementedError

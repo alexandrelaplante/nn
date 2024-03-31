@@ -1,10 +1,11 @@
-import numpy as np
+import np
 import random
 from cost import CostFunction
 from data import LabeledData
 from tqdm import tqdm
 
 from network import Network
+from regularization import Regularization
 from stopping import StoppingCondition
 
 
@@ -43,7 +44,7 @@ class StochasticGradientDescent:
         self,
         batch: list[LabeledData],
         learning_rate: float,
-        reg_param: float,
+        regularization: Regularization,
     ) -> None:
         """All examples in the batch are done simultaneously"""
         data = self._matrixify(batch)
@@ -55,7 +56,12 @@ class StochasticGradientDescent:
 
         # Skip the input layer
         for l, layer in enumerate(self.network.layers[1:], start=1):
-            layer.w -= step_size * (reg_param * layer.w + C_w(data, l))
+            layer.w += regularization.apply(
+                learning_rate=learning_rate,
+                m=len(batch),
+                w=layer.w,
+                delta=C_w(data, l),
+            )
             layer.b -= step_size * np.sum(C_b(data, l), axis=1).reshape(layer.b.shape)
 
     def train(
@@ -64,15 +70,21 @@ class StochasticGradientDescent:
         batch_size: int,
         learning_rate: float,
         stopping: StoppingCondition,
-        reg_param: float = 0.0,
-    ):
+        regularization: Regularization,
+    ) -> None:
         estimate = stopping.estimate(0)
         total = None
         if estimate:
-            total = estimate * len(training_data) / batch_size
+            total = estimate * len(training_data)
         epoch_num = 1
         postfix = {"epochs": epoch_num, "accuracy": "0%"}
-        with tqdm(total=total, unit=" samples", postfix=postfix) as t:
+        with tqdm(
+            total=total,
+            unit=" samples",
+            unit_scale=True,
+            postfix=postfix,
+            smoothing=0.1,
+        ) as t:
             while not stopping.should_stop(epoch_num):
                 postfix = {"epochs": epoch_num}
                 accuracy = stopping.accuracy(epoch_num)
@@ -86,11 +98,6 @@ class StochasticGradientDescent:
                     self._update(
                         batch,
                         learning_rate=learning_rate,
-                        # rewrite our lambda as m * lambda / n
-                        # because our code's weight decay is (1 - eta * lambda / m)
-                        # this results in weight decay of (1 - eta * lambda / n)
-                        # as expected
-                        reg_param=len(batch) * reg_param / len(training_data),
-                        # reg_param=reg_param,
+                        regularization=regularization,
                     )
-                    t.update()
+                    t.update(n=len(batch))

@@ -1,53 +1,24 @@
-import numpy as np
-
-
-class InputLayer:
-    def __init__(self) -> None:
-        self.w = np.random.normal(size=[0, 0])
-        self.b = np.random.normal(size=[0])
-
-    def apply(self, x: np.array) -> np.array:
-        return x
-
-
-class LayerInitializer:
-    @classmethod
-    def w(cls, size):
-        # return np.random.normal(size=size, scale=np.sqrt(size[1]/2))
-        return np.random.normal(size=size)
-
-    @classmethod
-    def b(cls, size):
-        return np.random.normal(size=size)
+from initializers import LayerInitializer
+from layers import Layer
+import np
 
 
 class Network:
-    def __init__(self, sizes: list[int], layer_classes: list[type]) -> None:
-        num_layers = len(sizes) - 1
-        w_sizes = list(zip(sizes[1:], sizes[:-1]))
-        b_sizes = list(zip(sizes[1:], [1] * num_layers))
-
-        self.layers = [InputLayer()] + [
-            layer_classes[i](
-                w=LayerInitializer.w(w_sizes[i]),
-                b=LayerInitializer.b(b_sizes[i]),
+    def __init__(
+        self, layers: list[tuple[float, type[Layer], type[LayerInitializer]]]
+    ) -> None:
+        self.layers = []
+        for i, layer in enumerate(layers):
+            size, klass, init = layer
+            last_size = layers[i - 1][0]
+            self.layers.append(
+                klass(
+                    w=init.w((size, last_size)),
+                    b=init.b((size, 1)),
+                )
             )
-            for i in range(num_layers)
-        ]
 
     def apply(self, x: np.array) -> np.array:
-        for layer in self.layers:
+        for layer in self.layers[1:]:  # Skip input layer
             x = layer.apply(x)
         return x
-
-
-if __name__ == "__main__":
-    from sigmoid import SigmoidLayer
-    from relu import ReluLayer
-
-    x = np.array([[0.5, 0.5, 0.5, 0.5]]).T
-    n = Network(sizes=[4, 15, 10], layer_classes=[ReluLayer, SigmoidLayer])
-    print(n.layers[0])
-    print(n.layers[1])
-    o = n.apply(x)
-    print(o)

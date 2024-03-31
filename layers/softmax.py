@@ -1,4 +1,5 @@
-import numpy as np
+from layers.base import Layer
+import np
 
 
 # def softmax(z: np.ndarray) -> np.ndarray:
@@ -6,12 +7,30 @@ import numpy as np
 
 
 def softmax(z: np.ndarray) -> np.ndarray:
-    """Compute softmax values for each sets of scores in x."""
-    e_z = np.exp(z - np.max(z))
-    return e_z / e_z.sum()
+    # Taken from online to avoid overflows
+    exps = np.exp(z - np.amax(z))
+    return exps / np.sum(exps, axis=1, keepdims=True)
 
 
-class SoftmaxLayer:
+def softmax_grad_vec(s):
+    # s = z.reshape(-1, 1)
+    return np.diagflat(s) - np.dot(s, s.T)
+
+
+def softmax_prime(s: np.ndarray) -> np.ndarray:
+    # cols = []
+    # for i in range(s.shape[1]):
+    #     print(s[:][i].shape)
+    #     cols.append(softmax_grad_vec(s[:][i]))
+    # print(cols[0].shape)
+    # res = np.column_stack(cols)
+    # print("s.shape", s.shape)
+    # print("res.shape", res.shape)
+    # return res
+    raise NotImplementedError
+
+
+class Softmax(Layer):
     @staticmethod
     def f(x):
         return softmax(x)
@@ -19,17 +38,4 @@ class SoftmaxLayer:
     @staticmethod
     def f_prime(x):
         # raise NotImplementedError
-        return 1
-
-    def __init__(self, w: np.array, b: np.array) -> None:
-        self.w = w
-        self.b = b
-
-    def apply(self, x: np.array) -> np.array:
-        return self.f(self.z(x))
-
-    def z(self, x: np.array) -> np.array:
-        return self.w @ x + self.b
-
-    def __repr__(self) -> str:
-        return f"<SoftmaxLayer: w={self.w.shape}, b={self.b.shape}>"
+        return softmax_prime(x)

@@ -1,5 +1,5 @@
 from functools import cache
-import numpy as np
+import np
 from data import DataSet
 from evaluate import Evaluator
 from network import Network

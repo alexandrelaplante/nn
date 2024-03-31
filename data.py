@@ -1,12 +1,12 @@
 from itertools import count
 from dataclasses import dataclass, field
-import numpy as np
+import np
 
 
 @dataclass(frozen=True)
 class LabeledData:
-    value: np.array
-    label: np.array
+    value: np.ndarray
+    label: np.ndarray
     id: int = field(default_factory=count().__next__)
 
     def __hash__(self) -> int:

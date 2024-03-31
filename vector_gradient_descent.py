@@ -1,4 +1,4 @@
-import numpy as np
+import np
 from cost import Quadratic
 from data import LabeledData
 
@@ -33,8 +33,7 @@ class VectorSGD(StochasticGradientDescent):
 
 
 if __name__ == "__main__":
-    from sigmoid import SigmoidLayer
-    from relu import ReluLayer
+    from layers import SigmoidLayer
 
     data = MNISTLoader.load()
     n = Network(sizes=[784, 10, 10], layer_classes=[SigmoidLayer, SigmoidLayer])

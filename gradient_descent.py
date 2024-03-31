@@ -39,10 +39,15 @@ class StochasticGradientDescent:
         )
         return LabeledData(value=data_matrix, label=label_matrix)
 
-    def _update(self, batch: list[LabeledData], learning_rate: float) -> None:
+    def _update(
+        self,
+        batch: list[LabeledData],
+        learning_rate: float,
+        reg_param: float,
+    ) -> None:
         """All examples in the batch are done simultaneously"""
         data = self._matrixify(batch)
-        step_size = -learning_rate / len(batch)
+        step_size = learning_rate / len(batch)
 
         # C_w is partial derivative of cost(data) w.r.t. w_jkl
         # C_b is partial derivative of cost(data) w.r.t. b_jl
@@ -50,8 +55,8 @@ class StochasticGradientDescent:
 
         # Skip the input layer
         for l, layer in enumerate(self.network.layers[1:], start=1):
-            layer.w += step_size * C_w(data, l)
-            layer.b += step_size * np.sum(C_b(data, l), axis=1).reshape(layer.b.shape)
+            layer.w -= step_size * (reg_param * layer.w + C_w(data, l))
+            layer.b -= step_size * np.sum(C_b(data, l), axis=1).reshape(layer.b.shape)
 
     def train(
         self,
@@ -59,6 +64,7 @@ class StochasticGradientDescent:
         batch_size: int,
         learning_rate: float,
         stopping: StoppingCondition,
+        reg_param: float = 0.0,
     ):
         estimate = stopping.estimate(0)
         total = None
@@ -77,5 +83,14 @@ class StochasticGradientDescent:
 
                 random.shuffle(training_data)
                 for batch in chunks(training_data, batch_size):
-                    self._update(batch, learning_rate)
+                    self._update(
+                        batch,
+                        learning_rate=learning_rate,
+                        # rewrite our lambda as m * lambda / n
+                        # because our code's weight decay is (1 - eta * lambda / m)
+                        # this results in weight decay of (1 - eta * lambda / n)
+                        # as expected
+                        reg_param=len(batch) * reg_param / len(training_data),
+                        # reg_param=reg_param,
+                    )
                     t.update()

@@ -26,7 +26,12 @@ class Quadratic(CostFunction):
             sz, activations = feedforward(data)
 
             if l == len(self.network.layers) - 1:
-                return activations[-1] - data.label
+                # TODO: Why is sz[-1] in here? I thought if
+                # C = ½*(a - y)**2
+                # δC/δa = a - y
+                # which would just give us what is currently implemented
+                # as CrossEntropy
+                return sz[-1] * (activations[-1] - data.label)
 
             w = self.network.layers[l + 1].w
 
@@ -36,18 +41,18 @@ class Quadratic(CostFunction):
             return w.T @ (arr2 * arr3)
 
         @cache
+        def delta(data: LabeledData, l: int) -> np.ndarray:
+            sz, activations = feedforward(data)
+            return sz[l] * C_a(data, l)
+
+        @cache
         def C_w(data: LabeledData, l: int) -> np.ndarray:
             sz, activations = feedforward(data)
-
-            k_piece = activations[l - 1]
-            j_piece = sz[l] * C_a(data, l)
-
-            return j_piece @ k_piece.T
+            return delta(data, l) @ activations[l - 1].T
 
         @cache
         def C_b(data: LabeledData, l: int) -> np.ndarray:
-            sz, activations = feedforward(data)
-            return sz[l] * C_a(data, l)
+            return delta(data, l)
 
         return C_w, C_b
 
@@ -69,20 +74,24 @@ class CrossEntropy(CostFunction):
 
             w = self.network.layers[l + 1].w
 
-            return w.T @ C_a(data, l + 1)
+            arr2 = sz[l + 1]
+            arr3 = C_a(data, l + 1)
+
+            return w.T @ (arr2 * arr3)
+
+        @cache
+        def delta(data: LabeledData, l: int) -> np.ndarray:
+            sz, activations = feedforward(data)
+            return sz[l] * C_a(data, l)
 
         @cache
         def C_w(data: LabeledData, l: int) -> np.ndarray:
             sz, activations = feedforward(data)
-
-            k_piece = activations[l - 1]
-            j_piece = C_a(data, l)
-
-            return j_piece @ k_piece.T
+            return delta(data, l) @ activations[l - 1].T
 
         @cache
         def C_b(data: LabeledData, l: int) -> np.ndarray:
-            return C_a(data, l)
+            return delta(data, l)
 
         return C_w, C_b
 

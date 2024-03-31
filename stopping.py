@@ -60,4 +60,4 @@ class Epochs(StoppingCondition):
     def accuracy(self, *args, **kwargs) -> float | None:
         if not self.show_accuracy:
             return None
-        super(*args, **kwargs)
+        return super().accuracy(*args, **kwargs)

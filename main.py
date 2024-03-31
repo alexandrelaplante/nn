@@ -10,7 +10,7 @@ from stopping import AverageImprovement, Epochs
 if __name__ == "__main__":
     data = MNISTLoader.load()
     n = Network(
-        sizes=[784, 10, 10],
+        sizes=[784, 30, 10],
         layer_classes=[SigmoidLayer, SigmoidLayer],
     )
     sgd = StochasticGradientDescent(n, cost=Quadratic)
@@ -21,9 +21,10 @@ if __name__ == "__main__":
 
     sgd.train(
         training_data=data.training,
-        batch_size=100,
-        learning_rate=3.0,
-        stopping=Epochs(net=n, data=data, epochs=10, show_accuracy=False),
+        batch_size=10,
+        learning_rate=0.5,
+        reg_param=5.0,
+        stopping=Epochs(net=n, data=data, epochs=30, show_accuracy=True),
         # stopping=AverageImprovement(net=n, data=data, threshold=0.001),
     )
 

@@ -1,6 +1,6 @@
 import numpy as np
 import random
-from cost import CostFunction, Quadratic
+from cost import CostFunction
 from data import LabeledData
 from tqdm import tqdm
 
@@ -16,11 +16,11 @@ def chunks(lst, n):
 
 
 class StochasticGradientDescent:
-    def __init__(self, network: Network, cost: CostFunction):
+    def __init__(self, network: Network, cost: type[CostFunction]):
         self.network = network
-        self.cost = cost(network=network, feedforward=self.feedforward)
+        self.cost = cost(network=network, feedforward=self._feedforward)
 
-    def feedforward(self, data: LabeledData) -> tuple[list[np.array], list[np.array]]:
+    def _feedforward(self, data: LabeledData) -> tuple[list[np.array], list[np.array]]:
         sz = [None]  # need a dummy layer to represent input
         activations = [data.value]
         for layer in self.network.layers[1:]:
@@ -76,13 +76,13 @@ class StochasticGradientDescent:
 
 
 if __name__ == "__main__":
-    from sigmoid import SigmoidLayer
-    from relu import ReluLayer
+    from layers import SigmoidLayer, ReluLayer, LinearLayer, SoftmaxLayer
+    from cost import Quadratic, CrossEntropy, LogLikelihood
 
     data = MNISTLoader.load()
     n = Network(
         sizes=[784, 10, 10],
-        layer_classes=[SigmoidLayer, SigmoidLayer, SigmoidLayer],
+        layer_classes=[SigmoidLayer, SigmoidLayer],
     )
     sgd = StochasticGradientDescent(n, cost=Quadratic)
 
@@ -93,8 +93,8 @@ if __name__ == "__main__":
     sgd.train(
         training_data=data.training,
         epochs=3,
-        batch_size=100,
-        learning_rate=10.0,
+        batch_size=10,
+        learning_rate=3.0,
     )
 
     accuracy = evalator.evaluate(data.test)

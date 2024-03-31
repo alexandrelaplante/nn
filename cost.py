@@ -13,6 +13,8 @@ class CostFunction(ABC):
 
 
 class Quadratic(CostFunction):
+    """Used with Sigmoid output layer."""
+
     def partials(self) -> tuple[callable, callable]:
         @cache
         def feedforward(data: LabeledData):
@@ -47,3 +49,42 @@ class Quadratic(CostFunction):
             return sz[l] * C_a(data, l)
 
         return C_w, C_b
+
+
+class CrossEntropy(CostFunction):
+    """Used for sigmoid output layer."""
+
+    def partials(self) -> tuple[callable, callable]:
+        @cache
+        def feedforward(data: LabeledData):
+            return self.feedforward(data)
+
+        @cache
+        def C_a(data: LabeledData, l: int) -> np.ndarray:
+            sz, activations = feedforward(data)
+
+            if l == len(self.network.layers) - 1:
+                return activations[-1] - data.label
+
+            w = self.network.layers[l + 1].w
+
+            return w.T @ C_a(data, l + 1)
+
+        @cache
+        def C_w(data: LabeledData, l: int) -> np.ndarray:
+            sz, activations = feedforward(data)
+
+            k_piece = activations[l - 1]
+            j_piece = C_a(data, l)
+
+            return j_piece @ k_piece.T
+
+        @cache
+        def C_b(data: LabeledData, l: int) -> np.ndarray:
+            return C_a(data, l)
+
+        return C_w, C_b
+
+
+class LogLikelihood(CrossEntropy):
+    "Used with softmax output layer"

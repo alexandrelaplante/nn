@@ -17,7 +17,7 @@ class L1Regularization(Regularization):
         w: np.ndarray,
         delta: np.ndarray,
     ) -> np.ndarray:
-        return -learning_rate * ((self.lmbda / self.n) * np.sign(w) + delta / m)
+        return -learning_rate * (self.lmbda * np.sign(w) / self.n + delta / m)
 
 
 class L2Regularization(Regularization):
@@ -32,4 +32,4 @@ class L2Regularization(Regularization):
         w: np.ndarray,
         delta: np.ndarray,
     ) -> np.ndarray:
-        return -learning_rate * ((self.lmbda / self.n) * w + delta / m)
+        return -learning_rate * (self.lmbda * w / self.n + delta / m)

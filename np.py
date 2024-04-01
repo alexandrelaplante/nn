@@ -1,3 +1,3 @@
-from cupy import *
+# from cupy import *
 
-# from numpy import *
+from numpy import *

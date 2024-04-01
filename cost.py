@@ -73,11 +73,7 @@ class CrossEntropy(CostFunction):
                 return activations[-1] - data.label
 
             w = self.network.layers[l + 1].w
-
-            arr2 = sz[l + 1]
-            arr3 = C_a(data, l + 1)
-
-            return w.T @ (1 * arr3)
+            return w.T @ C_a(data, l + 1)
 
         @cache
         def delta(data: LabeledData, l: int) -> np.ndarray:

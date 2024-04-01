@@ -24,7 +24,7 @@ class StoppingCondition(ABC):
 
 
 class AverageImprovement(StoppingCondition):
-    def __init__(self, threshold=0.01, lookback=10, *args, **kwargs) -> None:
+    def __init__(self, threshold=0.001, lookback=20, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.threshold = threshold
         self.lookback = lookback
@@ -40,6 +40,26 @@ class AverageImprovement(StoppingCondition):
             return False
 
         return np.mean(self.improvements[-self.lookback :]) < self.threshold
+
+    def estimate(self, epoch_num: int) -> int | None:
+        return None
+
+
+class LastImprovement(StoppingCondition):
+    def __init__(self, lookback=10, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.lookback = lookback
+        self.best_accuracy = 0.0
+        self.epochs_since_best = 0
+
+    def should_stop(self, epoch_num: int) -> bool:
+        accuracy = self.accuracy(epoch_num)
+        if accuracy > self.best_accuracy:
+            self.best_accuracy = accuracy
+            self.epochs_since_best = 0
+        self.epochs_since_best += 1
+
+        return self.epochs_since_best > self.lookback
 
     def estimate(self, epoch_num: int) -> int | None:
         return None

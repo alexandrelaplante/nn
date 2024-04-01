@@ -6,7 +6,7 @@ from network import Network
 from layers import Sigmoid, Relu, Linear, Softmax, Input
 from cost import Quadratic, CrossEntropy, LogLikelihood
 from regularization import L1Regularization, L2Regularization
-from stopping import AverageImprovement, Epochs
+from stopping import AverageImprovement, Epochs, LastImprovement
 
 
 if __name__ == "__main__":
@@ -15,7 +15,7 @@ if __name__ == "__main__":
         layers=[
             (784, Input, Normal),
             (800, Relu, ScaledNormal),
-            (10, Sigmoid, Bengio),
+            (10, Sigmoid, ScaledNormal),
         ]
     )
     sgd = StochasticGradientDescent(n, cost=CrossEntropy)
@@ -27,8 +27,9 @@ if __name__ == "__main__":
         batch_size=10,
         learning_rate=0.1,
         regularization=L2Regularization(lmbda=5.0, n=len(data.training)),
-        stopping=Epochs(epochs=300, show_accuracy=False, net=n, data=data),
+        stopping=Epochs(epochs=3, show_accuracy=False, net=n, data=data),
         # stopping=AverageImprovement(net=n, data=data, threshold=0.001),
+        # stopping=LastImprovement(net=n, lookback=10, data=data),
     )
 
     accuracy = evalator.evaluate(data.test)

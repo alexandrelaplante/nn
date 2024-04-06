@@ -14,8 +14,8 @@ if __name__ == "__main__":
     n = Network(
         layers=[
             (784, Input, Normal),
-            (800, Relu, ScaledNormal),
-            (10, Sigmoid, ScaledNormal),
+            (100, Relu, ScaledNormal),
+            (10, Relu, ScaledNormal),
         ]
     )
     sgd = StochasticGradientDescent(n, cost=CrossEntropy)
@@ -25,8 +25,8 @@ if __name__ == "__main__":
     sgd.train(
         training_data=data.training,
         batch_size=10,
-        learning_rate=0.1,
-        regularization=L2Regularization(lmbda=5.0, n=len(data.training)),
+        learning_rate=0.05,
+        regularization=L2Regularization(lmbda=50.0, n=len(data.training)),
         stopping=Epochs(epochs=3, show_accuracy=False, net=n, data=data),
         # stopping=AverageImprovement(net=n, data=data, threshold=0.001),
         # stopping=LastImprovement(net=n, lookback=10, data=data),

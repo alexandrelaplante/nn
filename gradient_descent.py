@@ -2,9 +2,10 @@ import np
 import random
 from cost import CostFunction
 from data import LabeledData
-from tqdm import tqdm
+
 
 from network import Network
+from progress_bar import ProgressBar
 from regularization import Regularization
 from stopping import StoppingCondition
 
@@ -77,27 +78,18 @@ class StochasticGradientDescent:
         if estimate:
             total = estimate * len(training_data)
         epoch_num = 1
-        postfix = {"epochs": epoch_num, "accuracy": "0%"}
-        with tqdm(
-            total=total,
-            unit=" samples",
-            unit_scale=True,
-            postfix=postfix,
-            smoothing=0.1,
-        ) as t:
-            while not stopping.should_stop(epoch_num):
-                postfix = {"epochs": epoch_num}
-                accuracy = stopping.accuracy(epoch_num)
-                epoch_num += 1
-                if accuracy is not None:
-                    postfix["accuracy"] = f"{100*stopping.accuracy(epoch_num)}%"
-                t.set_postfix(postfix)
 
-                random.shuffle(training_data)
-                for batch in chunks(training_data, batch_size):
-                    self._update(
-                        batch,
-                        learning_rate=learning_rate,
-                        regularization=regularization,
-                    )
-                    t.update(n=len(batch))
+        p = ProgressBar(total=total)
+        while not stopping.should_stop(epoch_num):
+            accuracy = stopping.accuracy(epoch_num)
+            p.set_postfix(epoch_num, accuracy)
+            epoch_num += 1
+
+            random.shuffle(training_data)
+            for batch in chunks(training_data, batch_size):
+                self._update(
+                    batch,
+                    learning_rate=learning_rate,
+                    regularization=regularization,
+                )
+                p.update(n=len(batch))

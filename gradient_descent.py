@@ -41,11 +41,20 @@ class StochasticGradientDescent:
         )
         return LabeledData(value=data_matrix, label=label_matrix)
 
+    def _reset_velocities(self) -> None:
+        self.w_velocities = [
+            np.zeros(shape=layer.w.shape) for layer in self.network.layers
+        ]
+        self.b_velocities = [
+            np.zeros(shape=layer.b.shape) for layer in self.network.layers
+        ]
+
     def _update(
         self,
         batch: list[LabeledData],
         learning_rate: float,
         regularization: Regularization,
+        momentum_coefficient: float,
     ) -> None:
         """All examples in the batch are done simultaneously"""
         data = self._matrixify(batch)
@@ -57,13 +66,27 @@ class StochasticGradientDescent:
 
         # Skip the input layer
         for l, layer in enumerate(self.network.layers[1:], start=1):
-            layer.w += regularization.apply(
+            w_v, b_v = self.w_velocities[l], self.b_velocities[l]
+
+            self.w_velocities[l] = momentum_coefficient * w_v + regularization.apply(
                 learning_rate=learning_rate,
                 m=len(batch),
                 w=layer.w,
                 delta=C_w(data, l),
             )
-            layer.b -= step_size * np.sum(C_b(data, l), axis=1).reshape(layer.b.shape)
+            self.b_velocities[l] = momentum_coefficient * b_v - step_size * np.sum(
+                C_b(data, l), axis=1
+            ).reshape(layer.b.shape)
+            layer.w += self.w_velocities[l]
+            layer.b += self.b_velocities[l]
+
+            # layer.w += regularization.apply(
+            #     learning_rate=learning_rate,
+            #     m=len(batch),
+            #     w=layer.w,
+            #     delta=C_w(data, l),
+            # )
+            # layer.b -= step_size * np.sum(C_b(data, l), axis=1).reshape(layer.b.shape)
 
     def train(
         self,
@@ -72,6 +95,7 @@ class StochasticGradientDescent:
         learning_rate: float,
         stopping: StoppingCondition,
         regularization: Regularization,
+        momentum_coefficient: float = 0.0,
     ) -> None:
         estimate = stopping.estimate(0)
         total = None
@@ -80,6 +104,7 @@ class StochasticGradientDescent:
         epoch_num = 1
 
         p = ProgressBar(total=total)
+        self._reset_velocities()
         while not stopping.should_stop(epoch_num):
             accuracy = stopping.accuracy(epoch_num)
             p.set_postfix(epoch_num, accuracy)
@@ -90,6 +115,7 @@ class StochasticGradientDescent:
                 self._update(
                     batch,
                     learning_rate=learning_rate,
+                    momentum_coefficient=momentum_coefficient,
                     regularization=regularization,
                 )
                 p.update(n=len(batch))
